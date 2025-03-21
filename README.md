@@ -1,5 +1,6 @@
 # GENAI ChatBot Basics 1
 
+* Date: 09 Feb
 
 ### Environment Setup
 * The project uses `conda`
