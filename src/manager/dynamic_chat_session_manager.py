@@ -1,61 +1,57 @@
 from src.types.message_type import MessageType
-from src.manager.chat_manager import ChatManager
+from langchain_core.messages import HumanMessage, AIMessage
 
 
 class DynamicChatSessionManager:
     def __init__(self):
-        self.sessions = {}  # A dictionary to track session-specific chat managers
+        self.sessions = {}
 
-    def add_session(self, session_id: str, chat_manager: ChatManager):
+    def add_session(self, session_id: str, chat_manager):
         """
-        Adds a new session and associates it with a chat manager.
+        Add a session with an associated ChatManager.
         """
         if session_id in self.sessions:
             raise ValueError(f"Session {session_id} already exists.")
         self.sessions[session_id] = chat_manager
 
-    def add_message_to_session(self, session_id: str, message_type: MessageType, content: str):
+    def add_message(self, session_id: str, message_type: MessageType, content: str):
         """
-        Adds a message (Human or AI) to the specified session's chat manager.
-        """
-        if session_id not in self.sessions:
-            raise ValueError(f"Session {session_id} does not exist. Please add the session first.")
-
-        chat_manager = self.sessions[session_id]
-        chat_manager.add_message_to_session(session_id, message_type, content)
-
-    def get_session_response(self, session_id: str) -> str:
-        """
-        Retrieves the chat response for the specified session.
-        """
-        if session_id not in self.sessions:
-            raise ValueError(f"Session {session_id} does not exist. Please add the session first.")
-
-        chat_manager = self.sessions[session_id]
-        return chat_manager.manage_chat(session_id)
-
-    def clear_session(self, session_id: str):
-        """
-        Clears the specific session and removes its associated chat manager.
+        Add a message to the session's ChatManager.
         """
         if session_id not in self.sessions:
             raise ValueError(f"Session {session_id} does not exist.")
 
-        # Clear session in the associated chat manager
-        chat_manager = self.sessions[session_id]
-        chat_manager.chat_service.clear_session(session_id)
+        if message_type == MessageType.HUMAN:
+            message = HumanMessage(content=content)
+        elif message_type == MessageType.AI:
+            message = AIMessage(content=content)
+        else:
+            raise ValueError("Invalid message type.")
 
-        # Remove session from the manager
+        self.sessions[session_id].add_message(session_id, message)
+
+    def get_response(self, session_id: str, language: str) -> str:
+        """
+        Get a response for the given session ID.
+        """
+        if session_id not in self.sessions:
+            raise ValueError(f"Session {session_id} does not exist.")
+        return self.sessions[session_id].get_response(session_id, language)
+
+    def clear_session(self, session_id: str):
+        """
+        Clear the session's chat history and remove it.
+        """
+        if session_id not in self.sessions:
+            raise ValueError(f"Session {session_id} does not exist.")
         del self.sessions[session_id]
         print(f"Session {session_id} cleared.")
 
     def clear_all_sessions(self):
         """
-        Clears all sessions and their associated chat managers.
+        Clear all sessions and their associated chat managers.
         """
+        # Iterate over all sessions and remove them
         for session_id in list(self.sessions.keys()):
-            chat_manager = self.sessions[session_id]
-            chat_manager.chat_service.clear_session(session_id)
-
-        self.sessions.clear()
+            del self.sessions[session_id]
         print("All sessions cleared.")
