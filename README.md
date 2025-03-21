@@ -1,1 +1,1 @@
-# genai-chatbot-basics-1
+# GENAI ChatBot Basics 1
