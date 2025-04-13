@@ -1,11 +1,12 @@
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_groq import ChatGroq
-
+from langchain_core.messages import SystemMessage, trim_messages
 from config.set_config import Config
-from research.constants import system_prompt, chat_messages2
+from research.constants import system_prompt, chat_messages2, config1
 from src.constants import gorq_model_name
 
 """
@@ -64,9 +65,28 @@ class ChatWithGroq3:
         prompt = ChatPromptTemplate.from_messages(chat_history)
         return prompt | self.model
 
+class TrimmedChatMessageHistory(ChatMessageHistory):
+    """
+    A class that trims the chat message history.
+    """
+    def __init__(self):
+        super().__init__()
+        self.trimmer = trim_messages(max_tokens=1000,
+                                     strategy="last",
+                                     token_counter=self.model,
+                                     include_system=True,
+                                     allow_partial=False,
+                                     start_on="human",)
+
 
 if __name__ == "__main__":
     chat = ChatWithGroq3()
     chain = chat.get_chain(system_prompt)
-    response = chain.invoke({"messages": chat_messages2})
-    print(f"Response: {response.content}")
+    response = chain.invoke({"messages": chat_messages2}, config=config1)
+    # print(f"Response: {response.content}")
+    new_message = chat_messages2
+    new_message.append(AIMessage(content=response.content))
+    new_message.append(HumanMessage(content="Can you suggest a name to my restaurant."))
+    response_with_history = chat.runnable_with_chain(chain).invoke(new_message, config=config1)
+    # print(f"Response with history: {response_with_history.content}")
+    new_message.append(AIMessage(content=response_with_history.content))
